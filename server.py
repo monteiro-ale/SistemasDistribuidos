@@ -1,7 +1,7 @@
 import socket  
 import select 
 
-tamanhoHeader = 40 
+limiteHeader = 40 
 hostServidor = "127.0.0.1"
 portaServidor = 1234
 
@@ -17,7 +17,7 @@ clients = {}
 
 def recebeMensagem(client_socket):
     try:
-        mensagemHeader = client_socket.recv(tamanhoHeader)
+        mensagemHeader = client_socket.recv(limiteHeader)
 
         if not len(mensagemHeader):
             return False

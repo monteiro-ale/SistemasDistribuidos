@@ -4,15 +4,15 @@ import errno
 import sys
 
 limiteHeader = 40 
-
-IP = "127.0.0.1" 
-PORT = 1234     
+hostServidor = "127.0.0.1"
+portaServidor = 1234
+   
 nomeUsuario = input("Nome do usuário: ")
 
 
 # Cria um novo objeto de socket para o cliente
 socketCliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-socketCliente.connect((IP, PORT))
+socketCliente.connect((hostServidor, portaServidor))
 socketCliente.setblocking(False)
 
 nomeClienteCodificado = nomeUsuario.encode('utf-8')
