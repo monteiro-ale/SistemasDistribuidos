@@ -57,7 +57,7 @@ while True:
 
             user = clients[socketNotified]
             mensagemRecebida = mensagem['data'].decode('utf-8') 
-            print("\033[1;30;42mMensagem recebida:\033[m " + mensagem['data'].decode('utf-8')) 
+            print("########## Mensagem recebida ##########: " + mensagem['data'].decode('utf-8')) 
 
             if mensagemRecebida.upper() == 'SAIR':
                 exit()
