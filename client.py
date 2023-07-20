@@ -1,60 +1,47 @@
+import threading
 import socket  
-import select 
-import errno  
-import sys
-
-limiteHeader = 40 
-hostServidor = "127.0.0.1"
-portaServidor = 1234
-   
-nomeUsuario = input("Nome do usuário: ")
 
 
-# Cria um novo objeto de socket para o cliente
-socketCliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-socketCliente.connect((hostServidor, portaServidor))
-socketCliente.setblocking(False)
-
-nomeClienteCodificado = nomeUsuario.encode('utf-8')
-headerNomeUsuario = f"{len(nomeClienteCodificado):<{limiteHeader}}".encode('utf-8')
-# Envia o cabeçalho e o nome do cliente para o servidor
-socketCliente.send(headerNomeUsuario + nomeClienteCodificado)
-
-while True:
-    mensagem = input(f'{nomeUsuario} Digite uma mensagem: ')
-
-    if mensagem:
-        mensagem = mensagem.encode('utf-8')
-        mensagemHeader = f"{len(mensagem): {limiteHeader}}".encode('utf-8')
-        socketCliente.send(mensagemHeader + mensagem) 
-        #Se a mensagem for "sair" encerra o programa cliente
-        if mensagem.decode().upper() == 'SAIR':
-            exit()
-
+def main():
+    
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)   
     try:
-        while True:
-            headerNomeUsuario = socketCliente.recv(limiteHeader)
+        client.connect(("localhost", 5007))
+    except:
+        return print('\nErro ao conectar no servidor\n')
+    username = input("Digite seu usuario ")
+    print('\nConectado\n')
 
-            if not len(headerNomeUsuario):
-                print('Conexao Fechada')
-                sys.exit()
+    thread1 = threading.Thread(target=recebeMensagem, args=[client])
+    thread2 = threading.Thread(target= mandaMensagem, args=[client, username])
 
-            usernameLength = int(headerNomeUsuario.decode('utf-8').strip())
-            nomeClienteCodificado = socketCliente.recv(usernameLength).decode('utf-8')
+    thread1.start()
+    thread2.start()
 
-            mensagemHeader = socketCliente.recv(limiteHeader)
-            mensagemLength = int(mensagemHeader.decode('utf-8').strip())  
-            mensagem = socketCliente.recv(mensagemLength).decode('utf-8')
 
-            print(f'{nomeClienteCodificado} > {mensagem}')
 
-    except IOError as e:
-        if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
-            print('Erro: {}'.format(str(e)))
-            sys.exit()
 
-        continue
+def recebeMensagem(client):
+    while True:
+        try:
+            msg = client.recv(2048).decode('utf-8')
+            print(msg +'\n')
+        except:
+            print("\nNão foi possivel manter conexão com server\n")
+            print("Enter para continuar")
+            client.close()
+            break 
 
-    except Exception as e:
-        print('Erro: '.format(str(e)))
-        sys.exit()
+
+def mandaMensagem(client, username):
+    while True:
+        try:
+            msg = input('\n')
+            client.send(f'<{username}> {msg}'.encode('utf-8'))
+            if msg.lower() == "sair":
+                return main()
+        except:
+            return
+
+
+main()

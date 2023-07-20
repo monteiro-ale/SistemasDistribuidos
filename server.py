@@ -1,71 +1,54 @@
+import threading
 import socket  
-import select 
 
-limiteHeader = 40 
-hostServidor = "127.0.0.1"
-portaServidor = 1234
 
-socketServidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
- # Permite a reutilização do endereço de IP
-socketServidor.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-socketServidor.bind((hostServidor, portaServidor))
-socketServidor.listen()
+array_clientes = []
 
-listaSockets = [socketServidor]
+def main():
+    
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-clients = {}
-
-def recebeMensagem(client_socket):
     try:
-        mensagemHeader = client_socket.recv(limiteHeader)
-
-        if not len(mensagemHeader):
-            return False
-
-        mensagemLength = int(mensagemHeader.decode("utf-8").strip())
-        return {"header": mensagemHeader, "data" : client_socket.recv(mensagemLength)}
-
+        server.bind(("localhost", 5007))
+        server.listen()
     except:
-        return False
+        return print("Erro ao iniciar o server")
+    
+    
+    while True:
+        cliente, end = server.accept()
+        array_clientes.append(cliente)
+        thread = threading.Thread(target=tratamentoMensagem, args=[cliente])
+        thread.start()
 
 
-while True:
-     # Utiliza a função select para monitorar os sockets
-    leituraSocket, _, socketsExceptions = select.select(listaSockets, [], listaSockets)
 
-    for socketNotified in leituraSocket:
-        # Verifica se o socket notificado é o socket do servidor
-        if socketNotified == socketServidor:
-            socketCliente, enderecoCliente = socketServidor.accept()
+def tratamentoMensagem(client):
+    while True:
+        try:
+            msg = client.recv(2048)
+            decodada = msg.decode('utf-8')
+            print("Mensagem aqui:", decodada)
+            palavras = decodada.split()
+            primeira_palavra = palavras[1]
+            tamanho_arr = (len(palavras))
+            if tamanho_arr == 2 and primeira_palavra.lower() == "sair":
+                deletaCliente(client)
+            broadcast(msg, client)
+        except:
+            deletaCliente(client)
+            break
 
-            user = recebeMensagem(socketCliente)
-            if user is False:
-                continue
+def broadcast(msg, client):
+    for cliente in array_clientes:
+        if cliente != client:
+            try:
+                cliente.send(msg)
+            except:
+                deletaCliente(cliente)
 
-            listaSockets.append(socketCliente) 
-            clients[socketCliente] = user
+def deletaCliente(client):
+    array_clientes.remove(client)
 
-            print("Nova conexão aceita!")
-            print(f"Nova conexão aceita do endereço {enderecoCliente[0]}:{enderecoCliente[1]} nome: {user['data'].decode('utf-8')}")
 
-        else:
-            mensagem = recebeMensagem(socketNotified)
-
-            if mensagem is False:
-                print(f"Conexão encerrada {clients[socketNotified]['data'].decode('utf-8')}")
-                listaSockets.remove(socketNotified)
-
-            user = clients[socketNotified]
-            mensagemRecebida = mensagem['data'].decode('utf-8') 
-            print("########## Mensagem recebida ##########: " + mensagem['data'].decode('utf-8')) 
-
-            if mensagemRecebida.upper() == 'SAIR':
-                exit()
-
-            for socketCliente in clients:
-                if socketCliente != socketNotified:
-                    socketCliente.send(user['header'] + mensagem['header'] + mensagem['data'])
-
-    for socketNotified in socketsExceptions:
-         # Remove o socket da lista de sockets monitorados em caso de exceção
-        listaSockets.remove(socketNotified) 
+main()
